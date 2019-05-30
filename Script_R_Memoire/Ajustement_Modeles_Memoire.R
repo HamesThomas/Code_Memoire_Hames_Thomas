@@ -93,56 +93,6 @@ CentralExposure_Mat = matrix(CentralExpo, nrow = n_a, ncol = n_y, byrow = FALSE)
       ##################
 
 ### Fitting model AP because APC doesn't converge with the default epsilon
-Model_Matrix_AP = function(n_a, n_y)
-{  
-  n = n_a * n_y
-  #Création X_a
-  Identity_n_a = matrix(0, ncol = n_a, nrow = n_a, byrow = TRUE)
-  diag(Identity_n_a) = 1
-  X_na = Identity_n_a 
-  for (i in 2:n_y)
-  {
-    X_na = rbind(X_na,Identity_n_a)
-  }
-  
-  #Création X_y
-  Identity_n_y = matrix(0, ncol = n_y, nrow = n_y, byrow = TRUE)
-  diag(Identity_n_y) = 1
-  serie1_n_a = rep(1, n_a)
-  X_ny = matrix(0 , ncol = n_y, nrow = n, byrow = TRUE )
-  for (j in (1:n_y))
-  {
-    X_ny[(1:n_a) + n_a*(j-1) ,j] = 1
-  }
-  
-  
-  X = cbind(X_na,X_ny)
-  
-  return (X)
-}
-X_AP = Model_Matrix_AP(n_a, n_y)
-
-GLM1_AP = glm(dx ~ -1 + X_AP + offset(log(CentralExpo)), family = poisson(link = "log"))
-
-Alpha = GLM3_AP$coefficients[1:n_a]
-Kappa = GLM3_AP$coefficients[(n_a+1) : (n_a + n_y) ]
-Gamma = GLM3_APC$coefficients[(n_a+n_y+1):(n_a+n_y+n_c)]
-
-Kappa[n_y] = 0
-Gamma[n_c] = 0
-Gamma[n_c-1] = 0
-# only consider kappa and beta2/3
-Start = c(0* Alpha, Kappa,  rep(0, (n_a + n_y - 1)))
-
-Start = c(Alpha, Kappa,  0*Gamma)
-
-GLM1_APC = gnm(dx ~ -1 + X_APC + offset(log(CentralExpo)), family = poisson(link = "log"))
-
-GLM2_APC = gnm(Qx ~ -1 + X_APC, family = binomial(link = "cloglog"), weight = InitialExpo)
-
-GLM3_APC = gnm(Qx ~ -1 + X_APC, family = binomial(link = "logit"), weight = InitialExpo)
-
-
 
 ####
 
@@ -195,11 +145,13 @@ Model_Matrix_APC = function(n_a, n_y)
 
 X_APC = Model_Matrix_APC(n_a, n_y)
 
-GLM1_APC = glm(dx ~ -1 + X_APC + offset(log(CentralExpo)), family = poisson(link = "log"),  epsilon = 1.4e-8)
 
-GLM2_APC = glm(Qx ~ -1 + X_APC, family = binomial(link = "cloglog"), weight = InitialExpo, epsilon = 1.4e-8)
+GLM1_APC = gnm(dx ~ -1 + X_APC + offset(log(CentralExpo)), family = poisson(link = "log"))
 
-GLM3_APC = glm(Qx ~ -1 + X_APC, family = binomial(link = "logit"), weight = InitialExpo, epsilon = 1.3e-8)
+GLM2_APC = gnm(Qx ~ -1 + X_APC, family = binomial(link = "cloglog"), weight = InitialExpo)
+
+GLM3_APC = gnm(Qx ~ -1 + X_APC, family = binomial(link = "logit"), weight = InitialExpo)
+
 
 APC = c(GLM1_APC$deviance, GLM2_APC$deviance, GLM3_APC$deviance)
 APC
@@ -643,9 +595,9 @@ Model_Matrix_CBD_cohort_quad = function(n_a, n_y)
 
 X_CBD_cohort_quad = Model_Matrix_CBD_cohort_quad(n_a, n_y)
 
-GLM1_CBD_cohort_quad = glm(dx ~ -1 +  X_CBD_cohort_quad + offset(log(CentralExpo)), family = poisson(link = "log"), epsilon = 9e-6)
-GLM2_CBD_cohort_quad = glm(Qx ~ -1 + X_CBD_cohort_quad, family = binomial(link = "cloglog"), weight = InitialExpo, epsilon = 9e-6)
-GLM3_CBD_cohort_quad = glm(Qx ~ -1 + X_CBD_cohort_quad, family = binomial(link = "logit"), weight = InitialExpo, epsilon = 9e-6)
+GLM1_CBD_cohort_quad = gnm(dx ~ -1 +  X_CBD_cohort_quad + offset(log(CentralExpo)), family = poisson(link = "log"))
+GLM2_CBD_cohort_quad = gnm(Qx ~ -1 + X_CBD_cohort_quad, family = binomial(link = "cloglog"), weight = InitialExpo)
+GLM3_CBD_cohort_quad = gnm(Qx ~ -1 + X_CBD_cohort_quad, family = binomial(link = "logit"), weight = InitialExpo)
 
 CBD_cohort_quad = c(GLM1_CBD_cohort_quad$deviance, GLM2_CBD_cohort_quad$deviance, GLM3_CBD_cohort_quad$deviance)
 
@@ -1910,7 +1862,7 @@ InitialExposure_Mat = matrix(InitialExpo, nrow = n_a, ncol = n_y, byrow = FALSE)
 CentralExposure_Mat = matrix(CentralExpo, nrow = n_a, ncol = n_y, byrow = FALSE)
 
 
-devtools::install_github("HamesThomas/Code_Memoire_Hames_Thomas/ExtendedMort2DSmooth")
+devtools::install_github("HamesThomas/Code_Memoire_Hames_Thomas/ExtendedMort2DSmooth", force = TRUE)
 library("ExtendedMort2DSmooth")
 
 ## Utilisation de la fonction de Mort2DSmooth: après réécriture
@@ -1953,27 +1905,6 @@ mu_logit_2D_P_Spline_3 = -log(1-P_Spline_2D_Binomial_logit$fitted.values)
 persp(Age,Year, mu_logit_2D_P_Spline_3, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "2D_P_Spline_logit")
 
 
-
-
-
-Is.it.too.smooth = function(Qx_smooth_mat, Qx_notsmooth_mat, Exposure_mat)
-{
-  p = 2 # Because we smooth based on 2 paramaters to chose the number of internal knots for each axes ages an years
-  m = n_a 
-  for(i in 1:n_y){
-    StatsTestH = sum( (Exposure_mat[,i]) * ((c(Qx_smooth_mat[,i]) - Qx_notsmooth_mat[,i])^2)/(c(Qx_smooth_mat[,i]) * (i-c(Qx_smooth_mat[,i]) )))
-    
-    Chisq_995 = qchisq(0.99, m - p - 1)
-
-    if(StatsTestH > Chisq_995){
-      print(paste("The Year ", Year[i], " is oversmoothed"))
-    }
-    
-  }
-}
-Is.it.too.smooth(Qx_smooth_mat = P_Spline_2D_Poisson_log$fitted.values/LT_M_1960_50_90$lx, Qx_notsmooth_mat = Qx_Mat, Exposure_mat = InitialExposure_Mat)
-Is.it.too.smooth(Qx_smooth_mat = P_Spline_2D_Binomial_logit$fitted.values, Qx_notsmooth_mat = Qx_Mat, Exposure_mat = InitialExposure_Mat)
-Is.it.too.smooth(Qx_smooth_mat = P_Spline_2D_Binomial_cloglog$fitted.values, Qx_notsmooth_mat = Qx_Mat, Exposure_mat = InitialExposure_Mat)
 
 
 
@@ -2023,8 +1954,8 @@ Resids_Plot(residuals_mu = matrix(c(resid_P_Spline_logit_over), nrow = n_a, ncol
 ########################################################################################################
 
 
-B_x = MortSmooth_bbase(unique(LT_M_1960_50_90$Age), min(LT_M_1960_50_90$Age), max(LT_M_1960_50_90$Age) , ndx = 11, deg = 3)
-B_y = MortSmooth_bbase(unique(LT_M_1960_50_90$Year), min(LT_M_1960_50_90$Year), max(LT_M_1960_50_90$Year) , ndx = 14, deg = 3)
+B_x = MortSmooth_bbase(unique(LT_M_1960_50_90$Age), min(LT_M_1960_50_90$Age), max(LT_M_1960_50_90$Age) , ndx = 8, deg = 3)
+B_y = MortSmooth_bbase(unique(LT_M_1960_50_90$Year), min(LT_M_1960_50_90$Year), max(LT_M_1960_50_90$Year) , ndx = 11, deg = 3)
 
 
 Stock = c()
