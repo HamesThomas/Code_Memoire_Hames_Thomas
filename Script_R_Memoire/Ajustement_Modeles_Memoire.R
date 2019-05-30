@@ -92,6 +92,59 @@ CentralExposure_Mat = matrix(CentralExpo, nrow = n_a, ncol = n_y, byrow = FALSE)
       ### Modèle APC ###    Done
       ##################
 
+### Fitting model AP because APC doesn't converge with the default epsilon
+Model_Matrix_AP = function(n_a, n_y)
+{  
+  n = n_a * n_y
+  #Création X_a
+  Identity_n_a = matrix(0, ncol = n_a, nrow = n_a, byrow = TRUE)
+  diag(Identity_n_a) = 1
+  X_na = Identity_n_a 
+  for (i in 2:n_y)
+  {
+    X_na = rbind(X_na,Identity_n_a)
+  }
+  
+  #Création X_y
+  Identity_n_y = matrix(0, ncol = n_y, nrow = n_y, byrow = TRUE)
+  diag(Identity_n_y) = 1
+  serie1_n_a = rep(1, n_a)
+  X_ny = matrix(0 , ncol = n_y, nrow = n, byrow = TRUE )
+  for (j in (1:n_y))
+  {
+    X_ny[(1:n_a) + n_a*(j-1) ,j] = 1
+  }
+  
+  
+  X = cbind(X_na,X_ny)
+  
+  return (X)
+}
+X_AP = Model_Matrix_AP(n_a, n_y)
+
+GLM1_AP = glm(dx ~ -1 + X_AP + offset(log(CentralExpo)), family = poisson(link = "log"))
+
+Alpha = GLM3_AP$coefficients[1:n_a]
+Kappa = GLM3_AP$coefficients[(n_a+1) : (n_a + n_y) ]
+Gamma = GLM3_APC$coefficients[(n_a+n_y+1):(n_a+n_y+n_c)]
+
+Kappa[n_y] = 0
+Gamma[n_c] = 0
+Gamma[n_c-1] = 0
+# only consider kappa and beta2/3
+Start = c(0* Alpha, Kappa,  rep(0, (n_a + n_y - 1)))
+
+Start = c(Alpha, Kappa,  0*Gamma)
+
+GLM1_APC = gnm(dx ~ -1 + X_APC + offset(log(CentralExpo)), family = poisson(link = "log"))
+
+GLM2_APC = gnm(Qx ~ -1 + X_APC, family = binomial(link = "cloglog"), weight = InitialExpo)
+
+GLM3_APC = gnm(Qx ~ -1 + X_APC, family = binomial(link = "logit"), weight = InitialExpo)
+
+
+
+####
 
 Model_Matrix_APC = function(n_a, n_y)
 {  
@@ -142,7 +195,7 @@ Model_Matrix_APC = function(n_a, n_y)
 
 X_APC = Model_Matrix_APC(n_a, n_y)
 
-GLM1_APC = glm(dx ~ -1 + X_APC + offset(log(CentralExpo)), family = poisson(link = "log"), epsilon = 1.4e-8)
+GLM1_APC = glm(dx ~ -1 + X_APC + offset(log(CentralExpo)), family = poisson(link = "log"),  epsilon = 1.4e-8)
 
 GLM2_APC = glm(Qx ~ -1 + X_APC, family = binomial(link = "cloglog"), weight = InitialExpo, epsilon = 1.4e-8)
 
@@ -260,7 +313,7 @@ APC_dev_Poisson = c(GLM1_APC$deviance,
                     Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM2_APC$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
                     Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM3_APC$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
-
+GLM1_APC$coefficients
 
 
 #Fonction permettant de plotter les coefs estimé pour chacun des 3 modèles
@@ -504,10 +557,6 @@ qx_logit_CBD_cohort_3 = matrix(qx_logit_CBD_cohort_3, nrow = n_a, ncol = n_y, by
 mu_logit_CBD_cohort_3 = -log(1-qx_logit_CBD_cohort_3)
 persp(Age,Year, mu_logit_CBD_cohort_3, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_cohort_logit")
 
-
-CBD_cohort_dev_Poisson = c(GLM1_CBD_cohort$deviance,
-                    Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM2_CBD_cohort$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                    Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM3_CBD_cohort$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 CBD_cohort_aic = c(GLM1_CBD_cohort$aic, GLM2_CBD_cohort$aic, GLM3_CBD_cohort$aic)
 CBD_cohort_aic
@@ -1367,7 +1416,6 @@ for(i in (0:(n_y-1)))
     X_c[count,] = vect
     count = count +1 
   }
-  
 }
 
 
@@ -1379,7 +1427,7 @@ for (i in (1:n))
 Cohort_F = factor(z_vector)
 
 
-### Les GNM suivant convergent si j'augmente le nombre d'iterations :-)
+
 #La pramétrisation étant aléatoire, cela complique grandement les forecasts... Faire run jusqu'à avoir un bon set de paramètres à forecaster
 #Remarquons que l'algorithme ne s'arrête car uniquement arrivé a itermax
 conv_count_log = 0
@@ -1643,7 +1691,8 @@ a = c()
 b = c()
 c = c()
 for( i in 1:10)
-{  GNM1_Renshaw_Haberman_start = gnm(dx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F) + offset(log(CentralExpo)), 
+{  
+GNM1_Renshaw_Haberman_start = gnm(dx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F) + offset(log(CentralExpo)), 
                                      family = poisson(link = "log") ,start = Start)
 GNM2_Renshaw_Haberman_start = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F), 
                                   family = binomial(link = "cloglog"), weight = InitialExpo, start = Start)
@@ -1718,12 +1767,6 @@ Start = c( NA*Alpha,Beta2, Kappa, Beta3,  NA*Gamma)
 GNM3_Renshaw_Haberman_start = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F),
                                   family = binomial(link = "logit"), weight = InitialExpo, start = Start, iterMax = 1500)
 
-
-
-
-Renshaw_Haberman_start_dev_Poisson = c(GNM1_Renshaw_Haberman_start$deviance,
-                           Deviance.FromBinomial(dx_obs = dx, qx_fit = GNM2_Renshaw_Haberman_start$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                           Deviance.FromBinomial(dx_obs = dx, qx_fit = GNM3_Renshaw_Haberman_start$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 
 
@@ -1866,10 +1909,14 @@ Qx_Mat = matrix(Qx, nrow = n_a, ncol = n_y, byrow = FALSE )
 InitialExposure_Mat = matrix(InitialExpo, nrow = n_a, ncol = n_y, byrow = FALSE)
 CentralExposure_Mat = matrix(CentralExpo, nrow = n_a, ncol = n_y, byrow = FALSE)
 
+
+devtools::install_github("HamesThomas/Code_Memoire_Hames_Thomas/ExtendedMort2DSmooth")
+library("ExtendedMort2DSmooth")
+
 ## Utilisation de la fonction de Mort2DSmooth: après réécriture
-P_Spline_2D_Poisson_log = Mort2Dsmooth_poisson(x = Age, y = Year, Z = dx_Mat, offset = log(CentralExposure_Mat), overdispersion = FALSE)
+P_Spline_2D_Poisson_log = Mort2Dsmooth_poisson_log(x = Age, y = Year, Z = dx_Mat, offset = log(CentralExposure_Mat), overdispersion = FALSE)
 P_Spline_2D_Poisson_log$aic
-P_Spline_2D_Poisson_log_over = Mort2Dsmooth_poisson(x = Age, y = Year, Z = dx_Mat, offset = log(CentralExposure_Mat), overdispersion = TRUE)
+P_Spline_2D_Poisson_log_over = Mort2Dsmooth_poisson_log(x = Age, y = Year, Z = dx_Mat, offset = log(CentralExposure_Mat), overdispersion = TRUE)
 P_Spline_2D_Poisson_log_over$aic
 
 

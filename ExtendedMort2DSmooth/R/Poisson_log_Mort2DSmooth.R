@@ -1,4 +1,4 @@
-Mort2Dsmooth_poisson_log = function (x, y, Z, offset, W, overdispersion = FALSE, ndx = c(floor(length(x)/5), 
+Mort2Dsmooth_poisson = function (x, y, Z, offset, W, overdispersion = FALSE, ndx = c(floor(length(x)/5), 
                                                                              floor(length(y)/5)), deg = c(3, 3), pord = c(2, 2), lambdas = NULL, 
                          df = NULL, method = 1, coefstart = NULL, control = list()) 
 {

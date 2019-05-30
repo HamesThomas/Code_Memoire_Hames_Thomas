@@ -13,12 +13,14 @@ install.packages("stats")
 library(arima)
 ##StMoMo vignette
 
+#function forecast forecasts the mutlivariate random walk with drift in equation 19 using the approach described in RH
+#Where function Arima is used to estimate and forecast the ARIMA processes of Eq. 20 and 21
 
 Number_Years_Forecasted = 51 
 
 
 ###############################################################
-######          Forecast CBD cohort quad effect         #######
+######          Forecast CBD cohort quad effect         #######   Done mais pas l'hypothèse des kappa-t ils sont forcés en arima
 ###############################################################
 
 ##For the GLM3
@@ -199,6 +201,7 @@ persp(Age,c(Year,Years), mu_cloglog_RH_total_2, theta=-115,phi=15, shade=0.5, ti
 ###########################################################################################
 
 
+extrapol_mu_logit_APC
 extrapol_mu_logit_CBD_cohort_quad
 extrapol_mu_logit_LC
 extrapol_mu_cloglog_RH
