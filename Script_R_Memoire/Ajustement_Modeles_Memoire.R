@@ -2,7 +2,7 @@ rm(list = ls())
 setwd("~/Documents/Sciences_Actuarielles/Mémoire/Memoire/DATA_R")
 
 LifeTableMen <- read.table("LifeTableMen_Belgium.txt",
-                             header = TRUE ,sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
+                           header = TRUE ,sep="\t", na.strings="NA", dec=".", strip.white=TRUE)
 #install.packages("gnm")
 #install.packages("StMoMo")
 #install.packages("stats")
@@ -88,9 +88,9 @@ CentralExposure_Mat = matrix(CentralExpo, nrow = n_a, ncol = n_y, byrow = FALSE)
 
 
 
-      ##################
-      ### Modèle APC ###    Done
-      ##################
+##################
+### Modèle APC ###    Done
+##################
 
 ### Fitting model AP because APC doesn't converge with the default epsilon
 
@@ -99,7 +99,7 @@ CentralExposure_Mat = matrix(CentralExpo, nrow = n_a, ncol = n_y, byrow = FALSE)
 Model_Matrix_APC = function(n_a, n_y)
 {  
   n = n_a * n_y
-        #Création X_a
+  #Création X_a
   Identity_n_a = matrix(0, ncol = n_a, nrow = n_a, byrow = TRUE)
   diag(Identity_n_a) = 1
   X_na = Identity_n_a 
@@ -108,7 +108,7 @@ Model_Matrix_APC = function(n_a, n_y)
     X_na = rbind(X_na,Identity_n_a)
   }
   
-        #Création X_y
+  #Création X_y
   Identity_n_y = matrix(0, ncol = n_y, nrow = n_y, byrow = TRUE)
   diag(Identity_n_y) = 1
   serie1_n_a = rep(1, n_a)
@@ -117,7 +117,7 @@ Model_Matrix_APC = function(n_a, n_y)
   {
     X_ny[(1:n_a) + n_a*(j-1) ,j] = 1
   }
- 
+  
   
   
   ### Rework de X_c! 
@@ -193,21 +193,6 @@ GLM2_APC$coefficients = solve(t(X_APC) %*% X_APC + t(H) %*% H) %*% (t(X_APC) %*%
 GLM3_APC$coefficients = solve(t(X_APC) %*% X_APC + t(H) %*% H) %*% (t(X_APC) %*% X_APC + t(H) %*% H_R) %*% GLM3_APC$coefficients
 
 
-
-Compute_resids = function(fit_values, FamillyType){
-  
-  if(FamillyType == "Poisson"){
-    mu_fit = -log(1-fit_values/LT_M_1960_50_90$lx)
-    mu_fit_matrix = matrix(c(mu_fit), nrow = n_a, ncol = n_y, byrow = FALSE)
-  }
-  else if(FamillyType == "Binomial"){
-    mu_fit = -log(1-fit_values)
-    mu_fit_matrix = matrix(c(mu_fit), nrow = n_a, ncol = n_y, byrow = FALSE)
-  }
-  
-  resids =  (mu_Mat - mu_fit_matrix)
-  return(resids)
-}
 Resids_Plot = function(residuals_mu, blur, Main_name)
 {
   picture <- as.matrix(blur(as.im(residuals_mu), sigma=blur))
@@ -221,7 +206,7 @@ Resids_Plot = function(residuals_mu, blur, Main_name)
 
 
 ## then with Poisson assumption, we find
-    ##for the log link
+##for the log link
 eta_APC_1 = (X_APC %*% GLM1_APC$coefficients)
 mu_log_APC_1 = exp(eta_APC_1)
 mu_log_APC_1 = matrix(mu_log_APC_1, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -229,7 +214,7 @@ persp(Age,Year, mu_log_APC_1, theta=-35,phi=15, shade=0.5, ticktype="detailed", 
 Resids_Plot(residuals_mu = matrix(c(rstandard(GLM1_APC)), nrow = n_a, ncol = n_y, byrow = FALSE), blur = 4, Main_name = "APC_poisson_log" )
 
 ## then with Binomial assumption, we find :
-    ##For the cloglog link
+##For the cloglog link
 eta_APC_2 = (X_APC %*% GLM2_APC$coefficients)
 qx_cloglog_APC_2 = 1-exp(-exp(eta_APC_2))
 qx_cloglog_APC_2 = matrix(qx_cloglog_APC_2, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -237,7 +222,7 @@ mu_cloglog_APC_2 = -log(1-qx_cloglog_APC_2)
 persp(Age,Year, mu_cloglog_APC_2, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "APC_cloglog")
 Resids_Plot(residuals_mu = matrix(c(rstandard(GLM2_APC)), nrow = n_a, ncol = n_y, byrow = FALSE), blur = 4, Main_name = "APC_Binomial_cloglog" )
 
-    ##For the logit link
+##For the logit link
 eta_APC_3 = (X_APC %*% GLM3_APC$coefficients)
 qx_logit_APC_3 = (exp(eta_APC_3))/(1 + exp(eta_APC_3))
 qx_logit_APC_3 = matrix((qx_logit_APC_3), nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -248,30 +233,10 @@ Resids_Plot(residuals_mu = matrix(c(rstandard(GLM3_APC)), nrow = n_a, ncol = n_y
 
 
 
-Deviance.FromBinomial = function(dx_obs, qx_fit, initial_ETR, devType){
-  dx_fit = qx_fit * InitialExpo
-  
-  if(devType == "Poisson"){
-    dev = 2 * (sum((dx_obs * log(dx_obs/dx_fit) - (dx_obs - dx_fit))))
-  }
-  else if(devType == "Binomial"){
-    dev = 2 * (sum((dx_obs)* log(dx_obs/dx_fit) + (InitialExpo - dx_obs) * log((InitialExpo - dx_obs) / (InitialExpo-dx_fit))))
-  }
-
-  return (dev)
-}
-
-APC_dev_Poisson = c(GLM1_APC$deviance,
-                    Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM2_APC$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                    Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM3_APC$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
-
-GLM1_APC$coefficients
-
-
 #Fonction permettant de plotter les coefs estimé pour chacun des 3 modèles
 Plot_Superpose_Coef = function(TheRange, GLM1, GLM2, GLM3, GLM1_name, GLM2_name, GLM3_name ,main_name, y_name, pos_legend)
 {
-
+  
   min_value = min(GLM1$coefficients[TheRange], GLM2$coefficients[TheRange], GLM3$coefficients[TheRange])
   max_value = max(GLM1$coefficients[TheRange], GLM2$coefficients[TheRange], GLM3$coefficients[TheRange])
   for(i in (1:3)){
@@ -286,7 +251,7 @@ Plot_Superpose_Coef = function(TheRange, GLM1, GLM2, GLM3, GLM1_name, GLM2_name,
     {
       lines(GLM3$coefficients[TheRange], col = "green")
     }
-
+    
   }
   legend(pos_legend, paste(c(GLM1_name, GLM2_name, GLM3_name)), lty=c(NA,1,1),pch=c(1, NA, NA) , col = c("black", "red", "green"))
   
@@ -297,19 +262,19 @@ Plot_Superpose_Coef(TheRange = c(1:n_a), GLM1_APC, GLM2_APC, GLM3_APC, GLM1_name
 Plot_Superpose_Coef(TheRange = c((n_a +1):(n_a + n_y)), GLM1_APC, GLM2_APC, GLM3_APC, GLM1_name = "APC_Poisson_log" , GLM2_name = "APC_Binomial_cloglog" , GLM3_name = "APC_Binomial_logit" , main_name = "APC", y_name = "Year_coef_Kappa", pos_legend = 'topright')
 
 Plot_Superpose_Coef(TheRange = c((n_a + n_y + 1): (n_a + n_y + n_c)), GLM1_APC, GLM2_APC, GLM3_APC, GLM1_name = "APC_Poisson_log" , GLM2_name = "APC_Binomial_cloglog" , GLM3_name = "APC_Binomial_logit" , main_name = "APC", y_name = "Cohort_coef_Gamma", pos_legend = "topleft")
-    
 
 
 
 
-      ##################
-      ### Modèle CBD ###    Done
-      ##################
+
+##################
+### Modèle CBD ###    Done
+##################
 
 Model_Matrix_CBD = function(n_a, n_y)
 {
   n = n_a * n_y
-          #Création X1
+  #Création X1
   Identity_n_y = matrix(0, ncol = n_y, nrow = n_y, byrow = TRUE)
   diag(Identity_n_y) = 1
   serie1_n_a = rep(1, n_a)
@@ -320,7 +285,7 @@ Model_Matrix_CBD = function(n_a, n_y)
     X_1[(1:n_a) + n_a*(j-1) ,j] = 1
   }
   
-        #Création X2
+  #Création X2
   Centred_Age_Vector = (50:90) - mean(50:90)
   X_2 = matrix(0 , ncol = n_y, nrow = n, byrow = TRUE )
   
@@ -351,7 +316,7 @@ NumberConstraints_CBD
 
 
 ## then with Poisson assumption, we find :
-      ##For the log link
+##For the log link
 eta_CBD_1 = (X_CBD %*% GLM1_CBD$coefficients)
 mu_log_CBD_1 = exp(eta_CBD_1)
 mu_log_CBD_1 = matrix(mu_log_CBD_1, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -359,23 +324,20 @@ persp(Age,Year, mu_log_CBD_1, theta=-35,phi=15, shade=0.5, ticktype="detailed", 
 
 
 ## then with Binomial assumption, we find :
-    ##For the cloglog link
+##For the cloglog link
 eta_CBD_2 = (X_CBD %*% GLM2_CBD$coefficients)
 qx_cloglog_CBD_2 = 1-exp(-exp(eta_CBD_2))
 qx_cloglog_CBD_2 = matrix(qx_cloglog_CBD_2, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
 mu_cloglog_CBD_2 = -log(1-qx_cloglog_CBD_2)
 persp(Age,Year, mu_cloglog_CBD_2, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_cloglog")
 
-    ##For the logit link
+##For the logit link
 eta_CBD_3 = (X_CBD %*% GLM3_CBD$coefficients)
 qx_logit_CBD_3 = (exp(eta_CBD_3))/(1 + exp(eta_CBD_3))
 qx_logit_CBD_3 = matrix(qx_logit_CBD_3, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
 mu_logit_CBD_3 = -log(1-qx_logit_CBD_3)
 persp(Age,Year, mu_logit_CBD_3, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_logit")
 
-CBD_dev_Poisson = c(GLM1_CBD$deviance,
-                    Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM2_CBD$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                    Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM3_CBD$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 CBD_aic = c(GLM1_CBD$aic, GLM2_CBD$aic, GLM3_CBD$aic)
 CBD_aic
@@ -394,16 +356,16 @@ Plot_Superpose_Coef(TheRange = c((n_y +1):(2* n_y)), GLM1_CBD, GLM2_CBD, GLM3_CB
 
 
 
-      ###################################
-      ### Modèle CBD  + Cohort effect ###   Done
-      ###################################
+###################################
+### Modèle CBD  + Cohort effect ###   Done
+###################################
 
 
 Model_Matrix_CBD_cohort = function(n_a, n_y)
 {
   n = n_a * n_y
   
-        #Création X1
+  #Création X1
   Identity_n_y = matrix(0, ncol = n_y, nrow = n_y, byrow = TRUE)
   diag(Identity_n_y) = 1
   serie1_n_a = rep(1, n_a)
@@ -426,7 +388,7 @@ Model_Matrix_CBD_cohort = function(n_a, n_y)
     }
   }
   
-
+  
   ### Rework de X_c! 
   n_c = n_a + n_y -1
   X_c = matrix(0 , ncol = n_c, nrow = n_a * n_y, byrow = TRUE )
@@ -487,14 +449,14 @@ GLM2_CBD_cohort$coefficients = solve(t(X_CBD_cohort) %*% X_CBD_cohort + t(H) %*%
 GLM3_CBD_cohort$coefficients = solve(t(X_CBD_cohort) %*% X_CBD_cohort + t(H) %*% H) %*% (t(X_CBD_cohort) %*% X_CBD_cohort + t(H) %*% H_R) %*% GLM3_CBD_cohort$coefficients
 
 ## then with Poisson assumption, we find
-    ##For the log link
+##For the log link
 eta_CBD_cohort_1 = (X_CBD_cohort %*% GLM1_CBD_cohort$coefficients)
 mu_log_CBD_cohort_1 = exp(eta_CBD_cohort_1)
 mu_log_CBD_cohort_1 = matrix(mu_log_CBD_cohort_1, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
 persp(Age,Year, mu_log_CBD_cohort_1, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_cohort_log")
 
 ## then with Binomial assumption, we find :
-    ##For the cloglog link
+##For the cloglog link
 eta_CBD_cohort_2 = (X_CBD_cohort %*% GLM2_CBD_cohort$coefficients)
 qx_cloglog_CBD_cohort_2 = 1-exp(-exp(eta_CBD_cohort_2))
 qx_cloglog_CBD_cohort_2 = matrix(qx_cloglog_CBD_cohort_2, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -502,7 +464,7 @@ mu_cloglog_CBD_cohort_2 = -log(1-qx_cloglog_CBD_cohort_2)
 persp(Age,Year, mu_cloglog_CBD_cohort_2, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_cohort_cloglog")
 
 
-    ##For the logit link
+##For the logit link
 eta_CBD_cohort_3 = (X_CBD_cohort %*% GLM3_CBD_cohort$coefficients)
 qx_logit_CBD_cohort_3 = (exp(eta_CBD_cohort_3))/(1 + exp(eta_CBD_cohort_3))
 qx_logit_CBD_cohort_3 = matrix(qx_logit_CBD_cohort_3, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -527,9 +489,9 @@ Plot_Superpose_Coef(TheRange = c((n_y + n_y + 1): (n_y + n_y + n_c)), GLM1_CBD_c
 
 
 
-    ######################################################
-    ### Modèle CBD  + Cohort effect + quadratic effect ###    Done
-    ######################################################
+######################################################
+### Modèle CBD  + Cohort effect + quadratic effect ###    Done
+######################################################
 
 
 Model_Matrix_CBD_cohort_quad = function(n_a, n_y) 
@@ -635,7 +597,7 @@ GLM3_CBD_cohort_quad$coefficients = solve(t(X_CBD_cohort_quad) %*% X_CBD_cohort_
 
 
 ## then with Poisson assumption, we find :
-    ##For the log link
+##For the log link
 eta_CBD_cohort_quad_1 = (X_CBD_cohort_quad %*% GLM1_CBD_cohort_quad$coefficients)
 mu_log_CBD_cohort_quad_1 = exp(eta_CBD_cohort_quad_1)
 mu_log_CBD_cohort_quad_1 = matrix(mu_log_CBD_cohort_quad_1, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -643,24 +605,20 @@ persp(Age,Year, mu_log_CBD_cohort_quad_1, theta=-35,phi=15, shade=0.5, ticktype=
 
 
 ## then with Binomial assumption, we find :
-    ##For the cloglog link
+##For the cloglog link
 eta_CBD_cohort_quad_2 = (X_CBD_cohort_quad %*% GLM2_CBD_cohort_quad$coefficients)
 qx_cloglog_CBD_cohort_quad_2 = 1-exp(-exp(eta_CBD_cohort_quad_2))
 qx_cloglog_CBD_cohort_quad_2 = matrix(qx_cloglog_CBD_cohort_quad_2, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
 mu_cloglog_CBD_cohort_quad_2 = -log(1-qx_cloglog_CBD_cohort_quad_2)
 persp(Age,Year, mu_cloglog_CBD_cohort_quad_2, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_cohort_quad_cloglog")
 
-    ##For the logit link
+##For the logit link
 eta_CBD_cohort_quad_3 = (X_CBD_cohort_quad %*% GLM3_CBD_cohort_quad$coefficients)
 qx_logit_CBD_cohort_quad_3 = (exp(eta_CBD_cohort_quad_3))/(1 + exp(eta_CBD_cohort_quad_3))
 qx_logit_CBD_cohort_quad_3 = matrix(qx_logit_CBD_cohort_quad_3, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
 mu_logit_CBD_cohort_quad_3 = -log(1-qx_logit_CBD_cohort_quad_3)
 persp(Age,Year, mu_logit_CBD_cohort_quad_3, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_cohort_quad_logit")
 
-
-CBD_cohort_quad_dev_Poisson = c(GLM1_CBD_cohort_quad$deviance,
-                               Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM2_CBD_cohort_quad$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                               Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM3_CBD_cohort_quad$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 CBD_cohort_quad_aic = c(GLM1_CBD_cohort_quad$aic, GLM2_CBD_cohort_quad$aic, GLM3_CBD_cohort_quad$aic)
 CBD_cohort_quad_aic
@@ -679,9 +637,9 @@ Plot_Superpose_Coef(TheRange = c((n_y + n_y+ 1): (n_y + n_y + n_y)), GLM1_CBD_co
 Plot_Superpose_Coef(TheRange = c((n_y + n_y + n_y + 1): (n_y + n_y +  n_y + n_c)), GLM1_CBD_cohort_quad, GLM2_CBD_cohort_quad, GLM3_CBD_cohort_quad, GLM1_name = "CBD_cohort_quad_Poisson_log" , GLM2_name = "CBD_cohort_quad_Binomial_cloglog" , GLM3_name = "CBD_cohort_quad_Binomial_logit" , main_name = "CBD_cohort_quad", y_name = "Cohort_coef_Gamma", pos_legend = "topleft")
 
 
-    #############################################
-    ### Modèle CBD  + modulated cohort effect ###   Done
-    #############################################
+#############################################
+### Modèle CBD  + modulated cohort effect ###   Done
+#############################################
 
 
 Model_Matrix_CBD_modulated_cohort = function(n_a, n_y, delta) 
@@ -732,7 +690,7 @@ Model_Matrix_CBD_modulated_cohort = function(n_a, n_y, delta)
   # Création de v(delta)
   
   v_delta = rep(delta* serie1_n_a - (50:90), n_y)
-
+  
   X = cbind(X_1, X_2 ,v_delta*X_c)
   
   return (X)
@@ -747,11 +705,6 @@ GLM3_CBD_modulated_cohort = glm(Qx ~ -1 + X_CBD_modulated_cohort, family = binom
 
 CBD_modulated_cohort_fixed_delta = c(GLM1_CBD_modulated_cohort$deviance, GLM2_CBD_modulated_cohort$deviance, GLM3_CBD_modulated_cohort$deviance)
 CBD_modulated_cohort_fixed_delta
-
-
-CBD_modulated_cohort_fixed_delta_dev_Poisson = c(GLM1_CBD_modulated_cohort$deviance,
-                                          Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM2_CBD_modulated_cohort$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                                          Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM3_CBD_modulated_cohort$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 
 
@@ -836,21 +789,21 @@ teta_CBD_modulated_cohort_1 = c(Kappa_1_t_CBD_modulated_cohort_1, Kappa_2_t_CBD_
 
 
 ## then with Poisson assumption, we find :
-    ##For the log link
+##For the log link
 eta_CBD_modulated_cohort_1 = (X_CBD_modulated_cohort %*% teta_CBD_modulated_cohort_1)
 mu_log_CBD_modulated_cohort_1 = exp(eta_CBD_modulated_cohort_1)
 mu_log_CBD_modulated_cohort_1 = matrix(mu_log_CBD_modulated_cohort_1, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
 persp(Age,Year, mu_log_CBD_modulated_cohort_1, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_modulated_cohort_log")
 
 ## then with Binomial assumption, we find :
-    ##For the cloglog link
+##For the cloglog link
 eta_CBD_modulated_cohort_2 = (X_CBD_modulated_cohort %*% GLM2_CBD_modulated_cohort$coefficients)
 qx_cloglog_CBD_modulated_cohort_2 = 1-exp(-exp(eta_CBD_modulated_cohort_2))
 qx_cloglog_CBD_modulated_cohort_2 = matrix(qx_cloglog_CBD_modulated_cohort_2, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
 mu_cloglog_CBD_modulated_cohort_2 = -log(1-qx_cloglog_CBD_modulated_cohort_2)
 persp(Age,Year, mu_cloglog_CBD_modulated_cohort_2, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_modulated_cohort_cloglog")
 
-    ##For the logit link
+##For the logit link
 eta_CBD_modulated_cohort_3 = (X_CBD_modulated_cohort %*% GLM3_CBD_modulated_cohort$coefficients)
 qx_logit_CBD_modulated_cohort_3 = (exp(eta_CBD_modulated_cohort_3))/(1 + exp(eta_CBD_modulated_cohort_3))
 qx_logit_CBD_modulated_cohort_3 = matrix(qx_logit_CBD_modulated_cohort_3, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -865,9 +818,9 @@ Resids_Plot(residuals_mu = matrix(c(rstandard(GLM2_CBD_modulated_cohort)), nrow 
 Resids_Plot(residuals_mu = matrix(c(rstandard(GLM3_CBD_modulated_cohort)), nrow = n_a, ncol = n_y, byrow = FALSE), blur = 4, Main_name = "CBD_modulated_cohort_Binomial_logit" )
 
 
-      ###########################################################
-      ### Modèle CBD  + modulated cohort effect Optimal Delta ###   Done
-      ###########################################################
+###########################################################
+### Modèle CBD  + modulated cohort effect Optimal Delta ###   Done
+###########################################################
 
 
 OptimDelta_GLM1 = function(delta)
@@ -904,7 +857,7 @@ GLM1_CBD_modulated_cohort_optim = glm(dx ~ -1 +  X_CBD_modulated_cohort + offset
 GLM1_CBD_modulated_cohort_optim$coefficients[208] = 0
 
 ## then with Poisson assumption, we find :
-    ##For the log link
+##For the log link
 eta_CBD_modulated_cohort_optim_1 = (X_CBD_modulated_cohort %*% GLM1_CBD_modulated_cohort_optim$coefficients)
 mu_log_CBD_modulated_cohort_optim_1 = exp(eta_CBD_modulated_cohort_optim_1)
 mu_log_CBD_modulated_cohort_optim_1 = matrix(mu_log_CBD_modulated_cohort_optim_1, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -920,7 +873,7 @@ GLM2_CBD_modulated_cohort_optim = glm(Qx ~ -1 + X_CBD_modulated_cohort, family =
 GLM2_CBD_modulated_cohort_optim$coefficients[208] = 0
 
 ## then with Binomial assumption, we find :
-    ##For the cloglog link
+##For the cloglog link
 eta_CBD_modulated_cohort_optim_2 = (X_CBD_modulated_cohort %*% GLM2_CBD_modulated_cohort_optim$coefficients)
 qx_cloglog_CBD_modulated_cohort_optim_2 = 1-exp(-exp(eta_CBD_modulated_cohort_optim_2))
 qx_cloglog_CBD_modulated_cohort_optim_2 = matrix(qx_cloglog_CBD_modulated_cohort_optim_2, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
@@ -937,19 +890,13 @@ GLM3_CBD_modulated_cohort_optim = glm(Qx ~ -1 + X_CBD_modulated_cohort, family =
 #Remplace les NA que R a mis pour les contraintes par des 0
 GLM3_CBD_modulated_cohort_optim$coefficients[208] = 0
 
-  ##For the logit link
+##For the logit link
 eta_CBD_modulated_cohort_optim_3 = (X_CBD_modulated_cohort %*% GLM3_CBD_modulated_cohort_optim$coefficients)
 qx_logit_CBD_modulated_cohort_optim_3 = (exp(eta_CBD_modulated_cohort_optim_3))/(1 + exp(eta_CBD_modulated_cohort_optim_3))
 qx_logit_CBD_modulated_cohort_optim_3 = matrix(qx_logit_CBD_modulated_cohort_optim_3, nrow = n_a, ncol = n_y, byrow = FALSE)  #Mat format
 mu_logit_CBD_modulated_cohort_optim_3 = -log(1-qx_logit_CBD_modulated_cohort_optim_3)
 persp(Age,Year, mu_logit_CBD_modulated_cohort_optim_3, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "CBD_modulated_cohort_optim_logit")
 
-
-
-
-CBD_modulated_cohort_optim_delta_dev_Poisson = c(GLM1_CBD_modulated_cohort_optim$deviance,
-                                                 Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM2_CBD_modulated_cohort_optim$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                                                 Deviance.FromBinomial(dx_obs = dx, qx_fit = GLM3_CBD_modulated_cohort_optim$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 CBD_modulated_cohort_optim_aic = c(GLM1_CBD_modulated_cohort_optim$aic, GLM2_CBD_modulated_cohort_optim$aic, GLM3_CBD_modulated_cohort_optim$aic)
 CBD_modulated_cohort_optim_aic
@@ -1221,9 +1168,9 @@ Changings_Parameters = function(glm , delta)
 
 
 
-      #####################################################
-      #####     Recupatilatif des Modèles via glm     #####   Done
-      #####################################################
+#####################################################
+#####     Recupatilatif des Modèles via glm     #####   Done
+#####################################################
 
 tab_GLM = data.frame(APC , CBD, CBD_cohort, CBD_cohort_quad, CBD_modulated_cohort_fixed_delta, CBD_modulated_cohort_optim)
 rownames(tab_GLM) = c("GLM1_log", "GLM2_cloglog", "GLM3_logit")
@@ -1257,9 +1204,9 @@ tab_aic
 #################################################################################
 
 
-      ##############################
-      #### Modèle de Lee-Carter ####    Done
-      ##############################
+##############################
+#### Modèle de Lee-Carter ####    Done
+##############################
 
 # As it has been described before
 
@@ -1295,19 +1242,19 @@ Lee_Carter_dev_Poisson = c(GNM1_Lee_Carter$deviance,
                            Deviance.FromBinomial(dx_obs = dx, qx_fit = GNM3_Lee_Carter$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 ## with the Poisson assumption, we find
-    # log link
+# log link
 eta_LC_1 = c()
 for( i in ((2*n_a +1) : (length(GNM1_Lee_Carter$coefficients))))
 {
   eta_LC_1 = c(eta_LC_1, GNM1_Lee_Carter$coefficients[1:n_a] + 
-    GNM1_Lee_Carter$coefficients[(n_a+1): (n_a +n_a)] * GNM1_Lee_Carter$coefficients[i])
+                 GNM1_Lee_Carter$coefficients[(n_a+1): (n_a +n_a)] * GNM1_Lee_Carter$coefficients[i])
 }
 eta_LC_1 = matrix(eta_LC_1, nrow = n_a, ncol = n_y, byrow = FALSE)
 mu_log_LC_1 = exp(eta_LC_1)
 persp(Age,Year, mu_log_LC_1, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "Lee_Carter_log")
 
 ## with the Binomial assumption, we find
-    # cloglog link
+# cloglog link
 eta_LC_2 = c()
 for( i in ((2*n_a +1) : (length(GNM2_Lee_Carter$coefficients))))
 {
@@ -1319,7 +1266,7 @@ qx_cloglog_LC_2 = 1-exp(-exp(eta_LC_2))
 mu_cloglog_LC_2 = -log(1-qx_cloglog_LC_2)
 persp(Age,Year, mu_cloglog_LC_2, theta=-35,phi=15, shade=0.5, ticktype="detailed", xlab = "Age", ylab = "Year", zlab = "force of mortality", main = "Lee_Carter_cloglog")
 
-    # logit link
+# logit link
 eta_LC_3 = c()
 for( i in ((2*n_a +1) : (length(GNM3_Lee_Carter$coefficients))))
 {
@@ -1349,9 +1296,9 @@ Plot_Superpose_Coef(TheRange = c((n_y + n_y + n_y + 1): (n_y + n_y +  n_y + n_c)
 
 
 
-      ####################################
-      #### Modèle de Renshaw-Haberman ####    Done    
-      ####################################
+####################################
+#### Modèle de Renshaw-Haberman ####    Done    
+####################################
 
 ### matrice X_c! 
 n_c = n_a + n_y -1
@@ -1395,7 +1342,7 @@ for(i in (1:10))
 {
   print(i)
   GNM1_Renshaw_Haberman = gnm(dx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F) + offset(log(CentralExpo)), family = poisson(link = "log"), iterMax = 1500)
-
+  
   if((is.null(GNM1_Renshaw_Haberman) == FALSE))
   {
     if((GNM1_Renshaw_Haberman$converged == TRUE) )
@@ -1404,7 +1351,7 @@ for(i in (1:10))
       Dev_log[i] = GNM1_Renshaw_Haberman$deviance
       iter_log[i] = GNM1_Renshaw_Haberman$iter
     }
-
+    
   }else
   {
     Dev_log[i] = "NA"
@@ -1412,13 +1359,13 @@ for(i in (1:10))
   }
   print(Dev_log)
   print(iter_log)
-
+  
 }
 for(i in (1:10))
 {
   print(i)
   GNM2_Renshaw_Haberman = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F), family = binomial(link = "cloglog"), weight = InitialExpo, iterMax = 1500)
-
+  
   if((is.null(GNM2_Renshaw_Haberman) == FALSE))
   {
     if((GNM2_Renshaw_Haberman$converged == TRUE) )
@@ -1435,7 +1382,7 @@ for(i in (1:10))
   }
   print(Dev_cloglog)
   print(iter_cloglog)
-
+  
   
 }
 for(i in (1:10))
@@ -1443,7 +1390,7 @@ for(i in (1:10))
   print(i)
   GNM3_Renshaw_Haberman = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F), family = binomial(link = "logit"), weight = InitialExpo, iterMax = 1500)
   
- 
+  
   if((is.null(GNM3_Renshaw_Haberman) == FALSE))
   {
     if((GNM3_Renshaw_Haberman$converged == TRUE) )
@@ -1473,16 +1420,13 @@ GNM3_Renshaw_Haberman = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, 
 Renshaw_Haberman = c(GNM1_Renshaw_Haberman$deviance, GNM2_Renshaw_Haberman$deviance, GNM3_Renshaw_Haberman$deviance)
 Renshaw_Haberman
 
-Renshaw_Haberman_dev_Poisson = c(GNM1_Renshaw_Haberman$deviance,
-                           Deviance.FromBinomial(dx_obs = dx, qx_fit = GNM2_Renshaw_Haberman$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                           Deviance.FromBinomial(dx_obs = dx, qx_fit = GNM3_Renshaw_Haberman$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 GNM1_Renshaw_Haberman$iter
 GNM2_Renshaw_Haberman$iter
 GNM3_Renshaw_Haberman$iter
 
 ## with the Poisson assumption, we find
-   # log link
+# log link
 Beta_X_1_RH_log_R = GNM1_Renshaw_Haberman$coefficients[1:n_a]
 Beta_X_2_RH_log_R = GNM1_Renshaw_Haberman$coefficients[(n_a +1):(2*n_a)]
 Kappa_t_1_RH_log_R = GNM1_Renshaw_Haberman$coefficients[(2*n_a +1):((2*n_a) +n_y)]
@@ -1518,7 +1462,7 @@ persp(Age,Year, mu_log_RH_1, theta=-35,phi=15, shade=0.5, ticktype="detailed", x
 
 
 ## with the Binomial assumption, we find
-   # cloglog link
+# cloglog link
 Beta_X_1_RH_cloglog_R = GNM2_Renshaw_Haberman$coefficients[1:n_a]
 Beta_X_2_RH_cloglog_R = GNM2_Renshaw_Haberman$coefficients[(n_a +1):(2*n_a)]
 Kappa_t_1_RH_cloglog_R = GNM2_Renshaw_Haberman$coefficients[(2*n_a +1):((2*n_a) +n_y)]
@@ -1554,7 +1498,7 @@ persp(Age,Year, mu_cloglog_RH_2, theta=-35,phi=15, shade=0.5, ticktype="detailed
 
 
 
-    # logit link
+# logit link
 Beta_X_1_RH_logit_R = GNM3_Renshaw_Haberman$coefficients[1:n_a]
 Beta_X_2_RH_logit_R = GNM3_Renshaw_Haberman$coefficients[(n_a +1):(2*n_a)]
 Kappa_t_1_RH_logit_R = GNM3_Renshaw_Haberman$coefficients[(2*n_a +1):((2*n_a) +n_y)]
@@ -1613,13 +1557,13 @@ legend("bottomright", "sum over kappa = -3.2e-15")
 plot(Kappa_t_1_RH_cloglog_R, type = "l")
 legend("topright", paste("sum over kappa = ", round(sum(Kappa_t_1_RH_cloglog_R), 5)))
 
-    #=>        ## Marche pas alors que censé être plus optimal, je dois tester le fit en fixant simplement le facteur age
-               ## Même si du coup c'est déjà pas mal que j'obtienne une réponse 
+#=>        ## Marche pas alors que censé être plus optimal, je dois tester le fit en fixant simplement le facteur age
+## Même si du coup c'est déjà pas mal que j'obtienne une réponse 
 
 
-        #####################################################
-        #####     Recupatilatif des Modèles via gnm     #####   Done
-        #####################################################
+#####################################################
+#####     Recupatilatif des Modèles via gnm     #####   Done
+#####################################################
 
 
 tab_GNM = data.frame(Lee_Carter, Renshaw_Haberman)
@@ -1644,19 +1588,19 @@ b = c()
 c = c()
 for( i in 1:10)
 {  
-GNM1_Renshaw_Haberman_start = gnm(dx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F) + offset(log(CentralExpo)), 
-                                     family = poisson(link = "log") ,start = Start)
-GNM2_Renshaw_Haberman_start = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F), 
-                                  family = binomial(link = "cloglog"), weight = InitialExpo, start = Start)
-GNM3_Renshaw_Haberman_start = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F),
-                                  family = binomial(link = "logit"), weight = InitialExpo, start = Start)
-
-Renshaw_Haberman_start = c(GNM1_Renshaw_Haberman_start$deviance, GNM2_Renshaw_Haberman_start$deviance, GNM3_Renshaw_Haberman_start$deviance)
-Renshaw_Haberman_start
-
-a = c(a,GNM1_Renshaw_Haberman_start$iter)
-b = c(b,GNM2_Renshaw_Haberman_start$iter)
-c = c(c,GNM3_Renshaw_Haberman_start$iter)
+  GNM1_Renshaw_Haberman_start = gnm(dx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F) + offset(log(CentralExpo)), 
+                                    family = poisson(link = "log") ,start = Start)
+  GNM2_Renshaw_Haberman_start = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F), 
+                                    family = binomial(link = "cloglog"), weight = InitialExpo, start = Start)
+  GNM3_Renshaw_Haberman_start = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F) + Mult(Age_F, Cohort_F),
+                                    family = binomial(link = "logit"), weight = InitialExpo, start = Start)
+  
+  Renshaw_Haberman_start = c(GNM1_Renshaw_Haberman_start$deviance, GNM2_Renshaw_Haberman_start$deviance, GNM3_Renshaw_Haberman_start$deviance)
+  Renshaw_Haberman_start
+  
+  a = c(a,GNM1_Renshaw_Haberman_start$iter)
+  b = c(b,GNM2_Renshaw_Haberman_start$iter)
+  c = c(c,GNM3_Renshaw_Haberman_start$iter)
 }
 
 
@@ -1906,7 +1850,20 @@ persp(Age,Year, mu_logit_2D_P_Spline_3, theta=-35,phi=15, shade=0.5, ticktype="d
 
 
 
-
+Compute_resids = function(fit_values, FamillyType){
+  
+  if(FamillyType == "Poisson"){
+    mu_fit = -log(1-fit_values/LT_M_1960_50_90$lx)
+    mu_fit_matrix = matrix(c(mu_fit), nrow = n_a, ncol = n_y, byrow = FALSE)
+  }
+  else if(FamillyType == "Binomial"){
+    mu_fit = -log(1-fit_values)
+    mu_fit_matrix = matrix(c(mu_fit), nrow = n_a, ncol = n_y, byrow = FALSE)
+  }
+  
+  resids =  (mu_Mat - mu_fit_matrix)
+  return(resids)
+}
 
 resid_P_Spline_log = (Compute_resids(fit_values = P_Spline_2D_Poisson_log$fitted.values, FamillyType = "Poisson") - mean(Compute_resids(fit_values = P_Spline_2D_Poisson_log$fitted.values, FamillyType = "Poisson"))) / sd(Compute_resids(fit_values = P_Spline_2D_Poisson_log$fitted.values, FamillyType = "Poisson"))
 resid_P_Spline_cloglog = (Compute_resids(fit_values = P_Spline_2D_Binomial_cloglog$fitted.values, FamillyType = "Binomial") - mean(Compute_resids(fit_values = P_Spline_2D_Binomial_cloglog$fitted.values, FamillyType = "Binomial"))) / sd(Compute_resids(fit_values = P_Spline_2D_Binomial_cloglog$fitted.values, FamillyType = "Binomial"))
@@ -2010,6 +1967,3 @@ persp(Age,Year, mu_logit_2D_B_Spline_3, theta=-35,phi=15, shade=0.5, ticktype="d
 Resids_Plot(residuals_mu = matrix(c(rstandard(GLM1_2D_B_Spline)), nrow = n_a, ncol = n_y, byrow = FALSE), blur = 4, Main_name = "2D_B_Spline_poisson_log" )
 Resids_Plot(residuals_mu = matrix(c(rstandard(GLM2_2D_B_Spline)), nrow = n_a, ncol = n_y, byrow = FALSE), blur = 4, Main_name = "2D_B_Spline_Binomial_cloglog" )
 Resids_Plot(residuals_mu = matrix(c(rstandard(GLM3_2D_B_Spline)), nrow = n_a, ncol = n_y, byrow = FALSE), blur = 4, Main_name = "2D_B_Spline_Binomial_logit" )
-
-
-
