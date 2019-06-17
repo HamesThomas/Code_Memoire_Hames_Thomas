@@ -2,7 +2,7 @@ Mort2Dsmooth_Binomial_cloglog = function (x, y, Z, offset, W, overdispersion = F
                                                                                             floor(length(y)/5)), deg = c(3, 3), pord = c(2, 2), lambdas = NULL, 
                                         df = NULL, method = 1, coefstart = NULL, control = list()) 
 {
-  print("FUCK YEAH")
+  
   if (missing(W)) {
     W <- matrix(1, length(x), length(y))
   }
