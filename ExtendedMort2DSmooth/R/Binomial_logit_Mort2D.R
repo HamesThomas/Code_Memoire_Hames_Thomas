@@ -221,6 +221,20 @@ Deviance.FromBinomial = function(dx_obs, qx_fit, initial_ETR, devType){
 }
 
 
+Deviance.FromBinomial = function(dx_obs, qx_fit, initial_ETR, devType){
+    dx_fit = qx_fit * InitialExpo
+    
+    if(devType == "Poisson"){
+        dev = 2 * (sum((dx_obs * log(dx_obs/dx_fit) - (dx_obs - dx_fit))))
+    }
+    else if(devType == "Binomial"){
+        dev = 2 * (sum((dx_obs)* log(dx_obs/dx_fit) + (InitialExpo - dx_obs) * log((InitialExpo - dx_obs) / (InitialExpo-dx_fit))))
+    }
+    
+    return (dev)
+}
+
+
 Mort2Dsmooth_checker_logit = function (x, y, Z, offset, W, overdispersion, ndx, deg, pord, 
                                  lambdas, df, method, coefstart, control)
 {
