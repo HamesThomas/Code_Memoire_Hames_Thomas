@@ -1237,9 +1237,6 @@ GNM3_Lee_Carter = gnm(Qx ~ -1 + Age_F + Mult(Age_F, Year_F), family = binomial(l
 Lee_Carter = c(GNM1_Lee_Carter$deviance, GNM2_Lee_Carter$deviance, GNM3_Lee_Carter$deviance)
 
 
-Lee_Carter_dev_Poisson = c(GNM1_Lee_Carter$deviance,
-                           Deviance.FromBinomial(dx_obs = dx, qx_fit = GNM2_Lee_Carter$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"),
-                           Deviance.FromBinomial(dx_obs = dx, qx_fit = GNM3_Lee_Carter$fitted.values, initial_ETR = InitialExpo, devType = "Poisson"))
 
 ## with the Poisson assumption, we find
 # log link

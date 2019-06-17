@@ -72,10 +72,10 @@ Mort2Dsmooth_Binomial_logit = function (x, y, Z, offset, W, overdispersion = FAL
     Z[is.na(Z)] <- 0  
     xx <- rep(x, n)
     yy <- rep(y, each = m)
-    fit0 <- glm((c(Z)) ~ xx + yy,       ####################### Changement effectué ici
+    fit0 <- glm((c(Z)) ~ xx + yy,       ############### glm binomial logit here
                 family = binomial(link = "logit"), weights = c(wei))
     etaGLM <- matrix(log(fit0$fitted/(1-fit0$fitted)) , m, n)   #- offset), m, n)               
-    eta0 <- log(Z/(1-Z)) # log((Z + 1)) #-  offset   ######## Changement effectué ici
+    eta0 <- log(Z/(1-Z)) # log((Z + 1)) #-  offset
     eta0[wei == 0] <- etaGLM[wei == 0]
     BBx <- solve(t(Bx) %*% Bx + diag(nbx) * 1e-06, t(Bx))
     BBy <- solve(t(By) %*% By + diag(nby) * 1e-06, t(By))
@@ -206,6 +206,19 @@ Mort2Dsmooth_Binomial_logit = function (x, y, Z, offset, W, overdispersion = FAL
   object
 }
 
+
+Deviance.FromBinomial = function(dx_obs, qx_fit, initial_ETR, devType){
+  dx_fit = qx_fit * InitialExpo
+  
+  if(devType == "Poisson"){
+    dev = 2 * (sum((dx_obs * log(dx_obs/dx_fit) - (dx_obs - dx_fit))))
+  }
+  else if(devType == "Binomial"){
+    dev = 2 * (sum((dx_obs)* log(dx_obs/dx_fit) + (InitialExpo - dx_obs) * log((InitialExpo - dx_obs) / (InitialExpo-dx_fit))))
+  }
+  
+  return (dev)
+}
 
 
 Mort2Dsmooth_checker_logit = function (x, y, Z, offset, W, overdispersion, ndx, deg, pord, 
@@ -426,12 +439,12 @@ Mort2Dsmooth_estimate_logit = function (x, y, Z, offset, psi2, wei, Bx, By, nbx,
     warning(paste("parameter estimates did NOT converge in", 
                   MAX.IT, "iterations. Increase MAX.IT in control."))
   }
-  eta <- MortSmooth_BcoefB_logit(Bx, By, a)    ######## Changement effectué ici
-  mu <- exp(eta)/(1 + exp(eta))    ######## Changement effectué ici
+  eta <- MortSmooth_BcoefB_logit(Bx, By, a)
+  mu <- exp(eta)/(1 + exp(eta))
   W <- mu
-  z <- eta +  (Z - mu) / (mu * (1 - mu))    ######## Changement effectué ici
+  z <- eta +  (Z - mu) / (mu * (1 - mu))
   z[which(wei == 0)] <- 0
-  WW <-  W *(1 - W) * wei   ######## Changement effectué ici
+  WW <-  W *(1 - W) * wei 
   BWB <- MortSmooth_BWB_logit(RTBx, RTBy, nbx, nby, WW)
   BWBpP <- BWB + psi2 * P
   BWz <- MortSmooth_BcoefB_logit(t(Bx), t(By), (WW * z))
@@ -442,16 +455,16 @@ Mort2Dsmooth_estimate_logit = function (x, y, Z, offset, psi2, wei, Bx, By, nbx,
   Z1 <- Z
   Z1[Z == 0] <- 10^(-4)
   #dev <- 2 * (sum(wei * (Z1 * log(Z1/mu)), na.rm = TRUE))       ### Have to change the deviance here to compute it as a binomial one and not a poisson
-  dev <- Deviance.FromBinomial(dx_obs = Z1*wei, qx_fit = mu, initial_ETR = wei, devType = "Binomial")/psi2 # scaled deviance as in glm book ######## Changement effectué ici
+  dev <- Deviance.FromBinomial(dx_obs = Z1*wei, qx_fit = mu, initial_ETR = wei, devType = "Binomial")/psi2 # scaled deviance as in glm book
   
   # dev <- 2 * (sum((dx_obs * log(dx_obs/dx_fit) - (dx_obs - dx_fit)), na.rm = TRUE))
   
   df <- sum(h)
   # aic <- dev/psi2 + 2 * df        # as for the poisson function 
   
-  logLH = sum( lfactorial(wei) - lfactorial(wei * Z1) - lfactorial(wei - wei * Z1)) + sum(wei * Z1 * log(mu)) + sum((wei- wei*Z1) * log(1 - mu))   ######## Changement effectué ici
-  PenalizedlogLH = logLH - (1/2) * (t(a0) %*% P %*% (a0))   ######## Changement effectué ici
-  aic = -2 * PenalizedlogLH/psi2  + 2 * df  ######## Changement effectué ici
+  logLH = sum( lfactorial(wei) - lfactorial(wei * Z1) - lfactorial(wei - wei * Z1)) + sum(wei * Z1 * log(mu)) + sum((wei- wei*Z1) * log(1 - mu))
+  PenalizedlogLH = logLH - (1/2) * (t(a0) %*% P %*% (a0)) 
+  aic = -2 * PenalizedlogLH/psi2  + 2 * df
 
   bic <- dev/psi2 + log(sum(wei)) * df # same, don't use it, so, it's not a problem, doesn't have to change it 
   llist <- list(a = a, h = h, df = df, aic = aic, bic = bic, 
@@ -464,11 +477,11 @@ Mort2Dsmooth_update_logit = function (x, y, Z, offset, psi2, wei, Bx, By, nbx, n
                                 RTBy, P, a) 
 {
   eta <- MortSmooth_BcoefB_logit(Bx, By, a)
-  mu <-  exp(eta)/(1 + exp(eta))          ######## Changement effectué ici
-  W <- mu                                 ######## Changement effectué ici
-  z <- eta +  (Z - mu) / (mu * (1 - mu))  ######## Changement effectué ici
-  z[which(wei == 0)] <- 0                 ######## Changement effectué ici
-  WW <- wei * W * (1 - W)                 ######## Changement effectué ici
+  mu <-  exp(eta)/(1 + exp(eta))            # I've been changing the value here for a logit binomial function
+  W <- mu 
+  z <- eta +  (Z - mu) / (mu * (1 - mu))
+  z[which(wei == 0)] <- 0
+  WW <- wei * W * (1 - W)
   BWB <- MortSmooth_BWB_logit(RTBx, RTBy, nbx, nby, WW)
   BWz <- MortSmooth_BcoefB_logit(t(Bx), t(By), (WW * z))
   a0 <- solve(BWB + psi2 * P, c(BWz))

@@ -2,6 +2,7 @@ Mort2Dsmooth_Binomial_cloglog = function (x, y, Z, offset, W, overdispersion = F
                                                                                             floor(length(y)/5)), deg = c(3, 3), pord = c(2, 2), lambdas = NULL, 
                                         df = NULL, method = 1, coefstart = NULL, control = list()) 
 {
+  print("FUCK YEAH")
   if (missing(W)) {
     W <- matrix(1, length(x), length(y))
   }
@@ -72,10 +73,10 @@ Mort2Dsmooth_Binomial_cloglog = function (x, y, Z, offset, W, overdispersion = F
     Z[is.na(Z)] <- 0  # remplace les 0 par 0 dans Z
     xx <- rep(x, n)
     yy <- rep(y, each = m)
-    fit0 <- glm((c(Z)) ~ xx + yy,       ######## Changement effectué ici
+    fit0 <- glm((c(Z)) ~ xx + yy,       ############### glm binomial cloglog here
                 family = binomial(link = "cloglog"), weights = c(wei))
     etaGLM <- matrix(log(-log(1-fit0$fitted)) , m, n)#- offset), m, n)               
-    eta0 <- log(-log(1-Z)) # log((Z + 1)) #- offset      ## Changement effectué ici
+    eta0 <- log(-log(1-Z)) # log((Z + 1)) #- offset
     eta0[wei == 0] <- etaGLM[wei == 0]
     BBx <- solve(t(Bx) %*% Bx + diag(nbx) * 1e-06, t(Bx))
     BBy <- solve(t(By) %*% By + diag(nby) * 1e-06, t(By))
@@ -202,7 +203,7 @@ Mort2Dsmooth_Binomial_cloglog = function (x, y, Z, offset, W, overdispersion = F
                  W = wei, Bx = Bx, By = By, fitted.values = fitted.values, 
                  linear.predictors = eta.hat + offset, coefficients = coef, 
                  cloglog.qx = eta.hat)
-  class(object) <- "Mort2Dsmooth.binomial.cloglog" ######## Changement effectué ici
+  class(object) <- "Mort2Dsmooth.binomial.cloglog"
   object
 }
 
@@ -377,7 +378,7 @@ Mort2Dsmooth_optimize_cloglog = function (x, y, Z, offset, wei, psi2, Bx, By, nb
   l.st.x0 <- median(lambdas.x0)
   l.st.y0 <- median(lambdas.y0)
   lambdas.hat0 <- cleversearch_cloglog(fn = Mort2Dsmooth_opt_ic_cloglog, lower = c(log10(RANGEx[1]), 
-                                                                               log10(RANGEy[1])), upper = c(log10(RANGEx[2]), log10(RANGEy[2])),
+                                                                               log10(RANGEy[1])), upper = c(log10(RANGEx[2]), log10(RANGEy[2])), 
                                      startvalue = c(l.st.x0, l.st.y0), ngrid = by.lambda.0, 
                                      logscale = TRUE, verbose = FALSE)[[1]]
   l.st.x <- log10(lambdas.hat0[1])
@@ -426,12 +427,12 @@ Mort2Dsmooth_estimate_cloglog = function (x, y, Z, offset, psi2, wei, Bx, By, nb
     warning(paste("parameter estimates did NOT converge in", 
                   MAX.IT, "iterations. Increase MAX.IT in control."))
   }
-  eta <- MortSmooth_BcoefB_cloglog(Bx, By, a)     ######## Changement effectué ici
-  mu <- 1 - exp( -exp( eta ))     ######## Changement effectué ici
+  eta <- MortSmooth_BcoefB_cloglog(Bx, By, a)
+  mu <- 1 - exp( -exp( eta ))
   W <- mu
-  z <- eta - (Z - mu) / ((1-mu) * log(1 - mu))    ######## Changement effectué ici
+  z <- eta - (Z - mu) / ((1-mu) * log(1 - mu))
   z[which(wei == 0)] <- 0
-  WW <-  (((1-W) * (log(1 - W))^2)/W) * wei    ######## Changement effectué ici
+  WW <-  (((1-W) * (log(1 - W))^2)/W) * wei
   BWB <- MortSmooth_BWB_cloglog(RTBx, RTBy, nbx, nby, WW)
   BWBpP <- BWB + psi2 * P
   BWz <- MortSmooth_BcoefB_cloglog(t(Bx), t(By), (WW * z))
@@ -441,19 +442,19 @@ Mort2Dsmooth_estimate_cloglog = function (x, y, Z, offset, psi2, wei, Bx, By, nb
   h <- diag(H)
   Z1 <- Z
   Z1[Z == 0] <- 10^(-4)
-  #dev <- 2 * (sum(wei * (Z1 * log(Z1/mu)), na.rm = TRUE))
+  #dev <- 2 * (sum(wei * (Z1 * log(Z1/mu)), na.rm = TRUE))       ### Have to change the deviance here to compute it as a binomial one and not a poisson
   #dx_obs = Z*InitialExposure_Mat
   #dx_fit = mu*InitialExposure_Mat
   #dev <- 2 * (sum((dx_obs)*log(dx_obs/dx_fit) + (wei-dx_obs) * log((wei-dx_obs) / (wei-dx_fit))))
-  dev <- Deviance.FromBinomial(dx_obs = Z1*wei, qx_fit = mu, initial_ETR = wei, devType = "Binomial")/psi2  ######## Changement effectué ici
+  dev <- Deviance.FromBinomial(dx_obs = Z1*wei, qx_fit = mu, initial_ETR = wei, devType = "Binomial")/psi2
   
   df <- sum(h)
   # aic <- dev/psi2 + 2 * df #same reason as before
   
-  logLH = sum( lfactorial(wei) - lfactorial(wei * Z1) - lfactorial(wei - wei * Z1)) + sum(wei * Z1 * log(mu)) + sum((wei- wei*Z1) * log(1 - mu))   ######## Changement effectué ici
-  PenalizedlogLH = logLH - (1/2) * (t(a0) %*% P %*% (a0))   ######## Changement effectué ici
+  logLH = sum( lfactorial(wei) - lfactorial(wei * Z1) - lfactorial(wei - wei * Z1)) + sum(wei * Z1 * log(mu)) + sum((wei- wei*Z1) * log(1 - mu))
+  PenalizedlogLH = logLH - (1/2) * (t(a0) %*% P %*% (a0)) 
   
-  aic = -2 * PenalizedlogLH/psi2  + 2 * df   ######## Changement effectué ici
+  aic = -2 * PenalizedlogLH/psi2  + 2 * df
   
   bic <- dev/psi2 + log(sum(wei)) * df
   llist <- list(a = a, h = h, df = df, aic = aic, bic = bic, 
@@ -466,11 +467,11 @@ Mort2Dsmooth_update_cloglog = function (x, y, Z, offset, psi2, wei, Bx, By, nbx,
                                       RTBy, P, a) 
 {
   eta <- MortSmooth_BcoefB_cloglog(Bx, By, a)
-  mu <- 1 - exp( -exp( eta ))          ######### Changement effectué ici
+  mu <- 1 - exp( -exp( eta ))          # I've been changing the value here for a cloglog binomial function
   W <- mu 
-  z <- eta - (Z - mu) / ((1-mu) * log(1 - mu))   ######## Changement effectué ici
+  z <- eta - (Z - mu) / ((1-mu) * log(1 - mu))
   z[which(wei == 0)] <- 0
-  WW <- wei * (1-W)/(W) * (log(1 - W))^2   ######## Changement effectué ici
+  WW <- wei * (1-W)/(W) * (log(1 - W))^2
   BWB <- MortSmooth_BWB_cloglog(RTBx, RTBy, nbx, nby, WW)
   BWz <- MortSmooth_BcoefB_cloglog(t(Bx), t(By), (WW * z))
   a0 <- solve(BWB + psi2 * P, c(BWz))
